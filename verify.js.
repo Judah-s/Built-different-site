@@ -1,0 +1,36 @@
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ status: false, message: 'Method not allowed' });
+  }
+  const { reference } = req.query;
+  if (!reference || typeof reference !== 'string') {
+    return res.status(400).json({ status: false, message: 'Missing reference' });
+  }
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    console.error('PAYSTACK_SECRET_KEY is not set');
+    return res.status(500).json({ status: false, message: 'Server not configured' });
+  }
+  try {
+    const paystackRes = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      { method: 'GET', headers: { Authorization: `Bearer ${secretKey}` } }
+    );
+    const data = await paystackRes.json();
+    const verified = Boolean(data && data.status && data.data && data.data.status === 'success');
+    if (!verified) {
+      return res.status(200).json({ status: false, message: 'Payment not verified', reference });
+    }
+    return res.status(200).json({
+      status: true,
+      reference: data.data.reference,
+      amount: data.data.amount,
+      currency: data.data.currency,
+      customer: data.data.customer,
+      paid_at: data.data.paid_at,
+    });
+  } catch (err) {
+    console.error('Paystack verify error:', err);
+    return res.status(500).json({ status: false, message: 'Verification failed' });
+  }
+}
