@@ -1,0 +1,8 @@
+{
+  "name": "built-different-mmxxv",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
